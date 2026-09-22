@@ -64,7 +64,12 @@ Reply ONLY in this format:
 3. Corrected code:
 4. Short explanation:
 
-Keep the answer short. Make sure the corrected code is valid.
+IMPORTANT:
+- Put the complete corrected code ONLY inside a fenced code block.
+- Put the complete corrected code inside a fenced code block with the correct language tag.
+- Do not put corrected code outside the code block.
+- The code block must contain the full runnable corrected code.
+- Keep the answer short.
 `;
 
     if (provider === "openrouter") {

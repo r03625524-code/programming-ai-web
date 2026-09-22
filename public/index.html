@@ -25,12 +25,15 @@ pre{white-space:pre-wrap;word-wrap:break-word;margin:0}
 </header>
 
 <div class="toolbar">
+<select id="language">
+<option value="javascript">JavaScript</option>
+<option value="python">Python</option>
+</select>
 <select id="provider">
 <option value="openai">OpenAI</option>
 <option value="deepseek">DeepSeek</option>
 <option value="local">Local Qwen</option>
-<option value="openrouter">OpenRouter Free</
-option>
+<option value="openrouter" selected>OpenRouter Free</option>
 </select>
 <button onclick="runCode()">▶ Run Code</button>
 <button onclick="askAI()">🤖 Ask AI</button><button onclick="fixCode()">🔧 Fix Code</button>
@@ -48,26 +51,64 @@ option>
 <pre id="aiResponse">AI response will appear here...</pre>
 </div>
 
-<script>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script><script>
 let lastError="";
+let pyodide = null;
 
-function runCode(){
+async function loadPython(){
+  if(!pyodide){
+    pyodide = await loadPyodide();
+  }
+  return pyodide;
+}
+
+async function runCode(){
 const code=document.getElementById("code").value;
+const language=document.getElementById("language").value;
 const output=document.getElementById("output");
+
 lastError="";
 output.textContent="";
 
+if(language==="python"){
+  try{
+    output.textContent="🐍 Loading Python...";
+
+    const py=await loadPython();
+
+    py.runPython(`
+import sys
+from io import StringIO
+
+_output = StringIO()
+sys.stdout = _output
+
+${code}
+
+sys.stdout = sys.__stdout__
+`);
+
+    const result=py.runPython("_output.getvalue()");
+
+    output.textContent=result || "✅ Python code executed successfully";
+  }catch(error){
+    lastError=error.message;
+    output.textContent="❌ Python Error:\\n"+error.message;
+  }
+  return;
+}
+
 const logs=[];
 const fakeConsole={
-log:function(...args){logs.push(args.join(" "));}
+  log:function(...args){logs.push(args.join(" "));}
 };
 
 try{
-new Function("console",code)(fakeConsole);
-output.textContent=logs.join("\n") || "✅ Code executed successfully";
+  new Function("console",code)(fakeConsole);
+  output.textContent=logs.join("\\n") || "✅ Code executed successfully";
 }catch(error){
-lastError=error.message;
-output.textContent="❌ Error:\n"+error.message;
+  lastError=error.message;
+  output.textContent="❌ Error:\\n"+error.message;
 }
 }
 
@@ -102,6 +143,7 @@ aiResponse.textContent="❌ Connection error: "+error.message;
 }
 async function fixCode(){
 const code=document.getElementById("code").value;
+const language=document.getElementById("language").value;
 const provider=document.getElementById("provider").value;
 const aiResponse=document.getElementById("aiResponse");
 
@@ -118,13 +160,13 @@ provider:provider                                           })
 const data=await response.json();
 
 if(data.success){
-let answer=data.answer || "";                               let match=answer.match(/```(?:javascript|js)?\s*([\s\S]*?)```/i);
+let answer=data.answer || "";
+let match=answer.match(/```(?:javascript|js|python|py)?\s*([\s\S]*?)```/i);
 let fixedCode=match ? match[1].trim() : "";
-
 if(!fixedCode){
 const lines=answer.split("\n");
 const codeLines=lines.filter(line =>
-line.trim().startsWith("console.") ||
+line.trim().startsWith("console.") || line.trim().startsWith("print(") ||
 line.trim().startsWith("const ") ||
 line.trim().startsWith("let ") ||
 line.trim().startsWith("var ") ||
