@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Programming AI Web</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#0d1117;color:#fff;font-family:Arial,sans-serif}
+header{padding:15px;background:#161b22;border-bottom:1px solid #30363d}
+h1{margin:0;font-size:22px}
+.toolbar{display:flex;gap:10px;padding:12px;background:#161b22;flex-wrap:wrap}
+select,button{padding:10px 14px;border-radius:6px;border:1px solid #30363d;background:#21262d;color:white;font-size:15px}
+button{cursor:pointer}
+button:hover{background:#30363d}
+#code{width:100%;height:400px;padding:15px;resize:vertical;background:#010409;color:#e6edf3;border:none;outline:none;font-family:monospace;font-size:15px}
+.panel{margin:12px;padding:15px;background:#161b22;border:1px solid #30363d;border-radius:8px}
+pre{white-space:pre-wrap;word-wrap:break-word;margin:0}
+</style>
+</head>
+<body>
+
+<header>
+<h1>💻 Programming AI Web</h1>
+</header>
+
+<div class="toolbar">
+<select id="provider">
+<option value="openai">OpenAI</option>
+<option value="deepseek">DeepSeek</option>
+<option value="local">Local Qwen</option>
+<option value="openrouter">OpenRouter Free</
+option>
+</select>
+<button onclick="runCode()">▶ Run Code</button>
+<button onclick="askAI()">🤖 Ask AI</button><button onclick="fixCode()">🔧 Fix Code</button>
+</div>
+
+<textarea id="code">console.log("Hello RK");</textarea>
+
+<div class="panel">
+<h3>Output</h3>
+<pre id="output">Ready...</pre>
+</div>
+
+<div class="panel">
+<h3>AI Response</h3>
+<pre id="aiResponse">AI response will appear here...</pre>
+</div>
+
+<script>
+let lastError="";
+
+function runCode(){
+const code=document.getElementById("code").value;
+const output=document.getElementById("output");
+lastError="";
+output.textContent="";
+
+const logs=[];
+const fakeConsole={
+log:function(...args){logs.push(args.join(" "));}
+};
+
+try{
+new Function("console",code)(fakeConsole);
+output.textContent=logs.join("\n") || "✅ Code executed successfully";
+}catch(error){
+lastError=error.message;
+output.textContent="❌ Error:\n"+error.message;
+}
+}
+
+async function askAI(){
+const code=document.getElementById("code").value;
+const provider=document.getElementById("provider").value;
+const aiResponse=document.getElementById("aiResponse");
+
+aiResponse.textContent="🤖 AI is thinking...";
+
+try{
+const response=await fetch("/api/ask-ai",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+code:code,
+error:lastError,
+provider:provider
+})
+});
+
+const data=await response.json();
+
+if(data.success){
+aiResponse.textContent=data.answer;
+}else{
+aiResponse.textContent="❌ "+data.message;
+}
+}catch(error){
+aiResponse.textContent="❌ Connection error: "+error.message;
+}
+}
+async function fixCode(){
+const code=document.getElementById("code").value;
+const provider=document.getElementById("provider").value;
+const aiResponse=document.getElementById("aiResponse");
+
+aiResponse.textContent="🔧 Fixing code...";
+
+try{                                                        const response=await fetch("/api/ask-ai",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({                                       code:code,
+error:lastError || "Find and fix any errors in this code.",
+provider:provider                                           })
+});
+
+const data=await response.json();
+
+if(data.success){
+let answer=data.answer || "";                               let match=answer.match(/```(?:javascript|js)?\s*([\s\S]*?)```/i);
+let fixedCode=match ? match[1].trim() : "";
+
+if(!fixedCode){
+const lines=answer.split("\n");
+const codeLines=lines.filter(line =>
+line.trim().startsWith("console.") ||
+line.trim().startsWith("const ") ||
+line.trim().startsWith("let ") ||
+line.trim().startsWith("var ") ||
+line.trim().startsWith("function ") ||
+line.trim().startsWith("if ") ||
+line.trim().startsWith("for ") ||
+line.trim().startsWith("while ")
+);
+fixedCode=codeLines.join("\n").trim();
+}
+
+if(fixedCode){
+document.getElementById("code").value=fixedCode;
+aiResponse.textContent="✅ Code fixed and placed in the editor.";
+runCode();
+}else{
+aiResponse.textContent="⚠️ Could not extract corrected code.\n\n"+answer;
+}
+}else{
+aiResponse.textContent="❌ "+data.message;
+}
+}catch(error){
+aiResponse.textContent="❌ Connection error: "+error.message;
+}
+}
+
+</script>
+
+</body>
+</html>
