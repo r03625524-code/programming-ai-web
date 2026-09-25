@@ -1,2 +1,20 @@
 node_modules/
 .env
+
+# Local test/debug files
+.kotlin-run-*/
+.ts-debug/
+cs-test/
+go-test/
+kotlin-run/
+kotlin-test/
+sql-test/
+ts-debug/
+ts-test/
+c --version
+frontend-check.js
+public/index.backup.html
+public/index.before-*.html
+server.before-*.js
+server.js.before-*
+server.js.backup

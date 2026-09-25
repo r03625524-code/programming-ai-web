@@ -16,184 +16,629 @@ button:hover{background:#30363d}
 #code{width:100%;height:400px;padding:15px;resize:vertical;background:#010409;color:#e6edf3;border:none;outline:none;font-family:monospace;font-size:15px}
 .panel{margin:12px;padding:15px;background:#161b22;border:1px solid #30363d;border-radius:8px}
 pre{white-space:pre-wrap;word-wrap:break-word;margin:0}
+body.lightTheme{background:#f5f5f5;color:#111} body.lightTheme header,body.lightTheme .toolbar{background:#fff;color:#111} body.lightTheme #code{background:#fff;color:#111} body.lightTheme select,body.lightTheme button{background:#eee;color:#111;border-color:#ccc}
+</style>
+
+<style id="visibilityFix">
+body{background:#0d1117;color:#ffffff;}
+header{color:#ffffff;}
+button{color:#ffffff;background:#21262d;border:1px solid #444;}
+select{color:#ffffff;background:#21262d;}
+textarea{background:#161b22;color:#ffffff;border:1px solid #444;}
+.panel{background:#161b22;color:#ffffff;}
+pre{color:#ffffff;}
+input{background:#161b22;color:#ffffff;border:1px solid #444;}
+#aiScreen{color:#ffffff;}
+#aiChatMessages{color:#ffffff;}
+</style>
+
+<style id="aiInputFix">
+#aiScreen input#aiChatInput{
+  background:#ffffff !important;
+  color:#000000 !important;
+  border:1px solid #888 !important;
+}
+#aiScreen input#aiChatInput::placeholder{
+  color:#555555 !important;
+}
+#aiScreen .aiChatInput button{
+  background:#21262d !important;
+  color:#ffffff !important;
+}
+</style>
+
+<style id="aiScreenFix">
+#aiScreen{
+  background:#161b22 !important;
+  color:#ffffff !important;
+  padding:15px;
+  min-height:400px;
+}
+#aiScreen .panel{
+  background:#161b22 !important;
+  color:#ffffff !important;
+}
+#aiScreen #aiChatMessages{
+  background:#0d1117 !important;
+  color:#ffffff !important;
+  min-height:280px;
+  padding:12px;
+}
+#aiScreen .aiChatInput{
+  display:flex !important;
+  gap:8px;
+  margin-top:10px;
+}
+#aiScreen #aiChatInput{
+  flex:1;
+  background:#ffffff !important;
+  color:#000000 !important;
+  border:1px solid #888 !important;
+  padding:12px;
+  border-radius:8px;
+}
+#aiScreen #aiChatInput::placeholder{
+  color:#555555 !important;
+}
+#aiScreen .aiChatInput button{
+  background:#238636 !important;
+  color:#ffffff !important;
+  padding:10px 18px;
+  border:0;
+  border-radius:8px;
+}
 </style>
 </head>
 <body>
 
-<header>
-<h1>💻 Programming AI Web</h1>
-</header>
-
-<div class="toolbar">
-<select id="language">
+<header style="display:flex;justify-content:space-between;align-items:center;"><h1>💻 Programming AI Web</h1><button id="menuButton" onclick="toggleMenu()">☰</button></header>
+<div id="settingsPanel" style="display:none;position:fixed;top:70px;right:20px;background:#161b22;border:1px solid #30363d;border-radius:10px;padding:15px;z-index:2000;width:280px;"><h3>⚙ Settings</h3><label>Language</label><br><select id="settingsLanguage" style="width:100%;margin:8px 0 15px;"><option value="automatic">Automatic</option>
 <option value="javascript">JavaScript</option>
 <option value="python">Python</option>
-</select>
-<select id="provider">
-<option value="openai">OpenAI</option>
-<option value="deepseek">DeepSeek</option>
-<option value="local">Local Qwen</option>
-<option value="openrouter" selected>OpenRouter Free</option>
-</select>
-<button onclick="runCode()">▶ Run Code</button>
-<button onclick="askAI()">🤖 Ask AI</button><button onclick="fixCode()">🔧 Fix Code</button>
+<option value="java">Java</option>
+<option value="c">C</option>
+<option value="cpp">C++</option>
+<option value="csharp">C#</option>
+<option value="go">Go</option>
+<option value="rust">Rust</option>
+<option value="php">PHP</option>
+<option value="ruby">Ruby</option>
+<option value="kotlin">Kotlin</option>
+<option value="swift">Swift</option>
+<option value="typescript">TypeScript</option>
+<option value="sql">SQL</option>
+<option value="bash">Bash</option>
+</select><label>AI Provider</label><br><select id="settingsProvider" style="width:100%;margin:8px 0 15px;"><option value="openai">OpenAI</option><option value="deepseek">DeepSeek</option><option value="local">Local Qwen</option><option value="openrouter">OpenRouter Free</option><option value="groq">Groq</option></select><label>Theme</label><br><select id="settingsTheme" style="width:100%;margin:8px 0 15px;"><option value="dark">Dark</option><option value="light">Light</option></select><button onclick="applySettings()" style="width:100%;">Apply</button></div>
+<div id="menuBox" style="display:none;position:absolute;right:10px;top:60px;background:#161b22;border:1px solid #30363d;border-radius:8px;padding:10px;z-index:1000;">
+  <button onclick="openSettings()" style="display:block;width:100%;margin-bottom:6px;">⚙ Settings</button>
+  <button onclick="document.getElementById('fileInput').click()" style="display:block;width:100%;margin-bottom:6px;">📁 Files</button>
+  <button onclick="toggleTheme()" style="display:block;width:100%;margin-bottom:6px;">🎨 Theme</button>
+  <button onclick="openPackages()" style="display:block;width:100%;margin-bottom:6px;">📦 Packages</button>
+  <button onclick="saveCurrentFile()" style="display:block;width:100%;">💾 Save</button>
 </div>
 
+<input type="file" id="fileInput" multiple style="display:none" onchange="loadFiles(event)">
+<div id="fileList" style="display:none;padding:10px;background:#161b22;border-bottom:1px solid #30363d;"></div>
+<div class="toolbar">
+<button onclick="runCode()">▶ Run Code</button>
+
+</div>
+
+<div style="display:flex;gap:8px;padding:10px;background:#161b22;">
+  <button onclick="showCodingScreen()">💻 Coding</button>
+  <button onclick="showAIScreen()">🤖 AI</button>
+</div>
+
+<div id="codingScreen">
 <textarea id="code">console.log("Hello RK");</textarea>
 
-<div class="panel">
-<h3>Output</h3>
-<pre id="output">Ready...</pre>
-</div>
 
 <div class="panel">
-<h3>AI Response</h3>
-<pre id="aiResponse">AI response will appear here...</pre>
+  <h3>Output</h3>
+  <pre id="output">Ready...</pre>
+</div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script><script>
-let lastError="";
-let pyodide = null;
+<div id="aiScreen" style="display:none;">
+  <div class="panel">
+    <h2>🤖 AI Assistant</h2>
+    <div id="aiChatMessages"></div>
+    <div class="aiChatInput">
+      <input id="aiChatInput" placeholder="Type your question..." onkeydown="if(event.key==='Enter') sendAIChat()">
+      <button onclick="sendAIChat()">Send</button>
+    </div>
+  </div>
+</div>
 
-async function loadPython(){
-  if(!pyodide){
-    pyodide = await loadPyodide();
+
+
+
+
+<script>window.pyodideReady = import("https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.mjs");function toggleMenu(){const m=document.getElementById("menuBox");m.style.display=m.style.display==="none"?"block":"none";}
+async function openPackages(){
+  const choice = await new Promise(resolve => {
+    const box = document.createElement("div");
+    box.style.cssText =
+      "position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:9999;";
+
+    box.innerHTML = `
+      <div style="background:#222;color:white;padding:25px;border-radius:16px;text-align:center;min-width:280px;">
+        <h2>📦 Package Manager</h2>
+        <p>Select package manager</p>
+        <button id="npmBtn" style="padding:12px 25px;margin:8px;font-size:16px;">npm</button>
+        <button id="pipBtn" style="padding:12px 25px;margin:8px;font-size:16px;">pip</button>
+      </div>
+    `;
+
+    document.body.appendChild(box);
+
+    box.querySelector("#npmBtn").onclick = () => {
+      box.remove();
+      resolve("npm");
+    };
+
+    box.querySelector("#pipBtn").onclick = () => {
+      box.remove();
+      resolve("pip");
+    };
+  });
+
+  const endpoint = choice === "npm"
+    ? "/api/install-npm"
+    : "/api/install-pip";
+
+  const packageName = prompt(
+    "Enter " + (choice === "npm" ? "npm" : "Python") + " package name:"
+  );
+
+  if(!packageName || !packageName.trim()) return;
+
+  try{
+    const response = await fetch(endpoint,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({package:packageName.trim()})
+    });
+
+    const data = await response.json();
+
+    if(data.success){
+      alert("Package installed successfully!\n\n" +
+            packageName.trim() + "\n\n" +
+            data.output);
+    }else{
+      alert("Package installation failed.\n\n" +
+            (data.error || "Unknown error"));
+    }
+  }catch(error){
+    alert("Connection error.\n\n" + error.message);
   }
-  return pyodide;
+}
+if(localStorage.getItem("selectedLanguage"))document.getElementById("settingsLanguage").value=localStorage.getItem("selectedLanguage");
+if(localStorage.getItem("selectedProvider"))document.getElementById("settingsProvider").value=localStorage.getItem("selectedProvider");
+function applySettings(){
+  const lang=document.getElementById("settingsLanguage").value;
+  const prov=document.getElementById("settingsProvider").value;
+  localStorage.setItem("selectedLanguage",lang);
+  localStorage.setItem("selectedProvider",prov);
+
+  const theme=document.getElementById("settingsTheme").value;
+  document.body.classList.toggle("lightTheme",theme==="light");
+  localStorage.setItem("theme",theme);
+  document.getElementById("settingsPanel").style.display="none";
+}
+function openSettings(){document.getElementById("settingsPanel").style.display="block";}
+function saveCurrentFile(){const code=document.getElementById("code").value;const blob=new Blob([code],{type:"text/plain"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=window.currentFileName||"ProgrammingAI_Code.txt";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
+function toggleTheme(){document.body.classList.toggle("lightTheme");localStorage.setItem("theme",document.body.classList.contains("lightTheme")?"light":"dark");} if(localStorage.getItem("theme")==="light"){document.body.classList.add("lightTheme");}
+function loadFiles(event){
+  const files=event.target.files;
+  const list=document.getElementById("fileList");
+  list.style.display="block";
+  list.innerHTML="";
+  window.uploadedFiles=Array.from(files);
+  window.uploadedFiles.forEach((file,i)=>{
+    const btn=document.createElement("button");
+    btn.textContent="📄 "+file.name;
+    btn.style.display="block";
+    btn.style.width="100%";
+    btn.style.marginBottom="5px";
+    btn.onclick=()=>openFile(i);
+    list.appendChild(btn);
+  });
+}
+function openFile(index){
+  const file=window.uploadedFiles[index];
+  const reader=new FileReader();
+  reader.onload=()=>{document.getElementById("code").value=reader.result;};
+    window.currentFileName=file.name;
+  reader.readAsText(file);
+}
+</script>
+
+
+
+<style>
+#aiFloatButton{
+  position:fixed;
+  right:20px;
+  bottom:20px;
+  z-index:9999;
+  border:0;
+  border-radius:50px;
+  padding:14px 20px;
+  font-size:16px;
+  cursor:pointer;
+}
+#aiChatBox{
+  display:none;
+  position:fixed;
+  right:20px;
+  bottom:80px;
+  width:320px;
+  max-width:calc(100vw - 40px);
+  height:420px;
+  z-index:9998;
+  background:#fff;
+  border:1px solid #ccc;
+  border-radius:16px;
+  overflow:hidden;
+  box-shadow:0 8px 30px rgba(0,0,0,.25);
+}
+#aiChatMessages{
+      color:#111;
+  height:320px;
+  overflow-y:auto;
+  padding:12px;
+}
+.aiChatInput{
+  display:flex;
+  gap:6px;
+  padding:8px;
+  border-top:1px solid #ddd;
+}
+#aiChatInput{
+  flex:1;
+  padding:10px;
+  border:1px solid #ccc;
+  border-radius:10px;
+}
+body.lightTheme{background:#f5f5f5;color:#111} body.lightTheme header,body.lightTheme .toolbar{background:#fff;color:#111} body.lightTheme #code{background:#fff;color:#111} body.lightTheme select,body.lightTheme button{background:#eee;color:#111;border-color:#ccc}
+</style>
+
+<script>
+
+if(localStorage.getItem("selectedLanguage"))document.getElementById("settingsLanguage").value=localStorage.getItem("selectedLanguage");
+if(localStorage.getItem("selectedProvider"))document.getElementById("settingsProvider").value=localStorage.getItem("selectedProvider");
+function saveCurrentFile(){const code=document.getElementById("code").value;const blob=new Blob([code],{type:"text/plain"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=window.currentFileName||"ProgrammingAI_Code.txt";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
+function toggleAIChat(){
+  const box=document.getElementById("aiChatBox");
+  box.style.display=box.style.display==="block" ? "none" : "block";
 }
 
-async function runCode(){
-const code=document.getElementById("code").value;
-const language=document.getElementById("language").value;
-const output=document.getElementById("output");
+let aiChatHistory=[];
+localStorage.removeItem("aiChatHistory");
 
-lastError="";
-output.textContent="";
+async function sendAIChat(){
+  const input=document.getElementById("aiChatInput");
+  const messages=document.getElementById("aiChatMessages");
+  const text=input.value.trim();
 
-if(language==="python"){
+  if(!text) return;
+
+  messages.innerHTML += "<div><b>You:</b> "+text.replace(/</g,"&lt;")+"</div>";
+  input.value="";
+  messages.innerHTML += "<div id='aiTyping'><b>AI:</b> Thinking...</div>";
+  messages.scrollTop=messages.scrollHeight;
+
   try{
-    output.textContent="🐍 Loading Python...";
+    console.log("Sending AI request:", text);
+    const response=await fetch("/api/ai-chat",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        message:text,
+        code:document.getElementById("code").value,
+        provider:localStorage.getItem("selectedProvider") || "local",
+            history:aiChatHistory
+      })
+    });
 
-    const py=await loadPython();
+    const data=await response.json();
+    document.getElementById("aiTyping")?.remove();
 
-    py.runPython(`
-import sys
-from io import StringIO
-
-_output = StringIO()
-sys.stdout = _output
-
-${code}
-
-sys.stdout = sys.__stdout__
-`);
-
-    const result=py.runPython("_output.getvalue()");
-
-    output.textContent=result || "✅ Python code executed successfully";
+    if(data.success){
+      aiChatHistory.push({role:"user",content:text});
+      aiChatHistory.push({role:"assistant",content:data.answer || ""}); localStorage.setItem("aiChatHistory",JSON.stringify(aiChatHistory));
+      const answer=data.answer || ""; const codeMatch=answer.match(/<CODE>([\s\S]*?)<\/CODE>/i); const userAskedForCode=/\b(fix|change|add|remove|modify|edit|update|rewrite|correct|debug|replace|delete|generate|create|write)\b.*\b(code|coding|program|programming|function|class|script|html|css|javascript|python|java|c\+\+)\b|\b(code|coding|program|programming|function|class|script|html|css|javascript|python|java|c\+\+)\b.*\b(fix|change|add|remove|modify|edit|update|rewrite|correct|debug|replace|delete|generate|create|write)\b/i.test(text); if(codeMatch && userAskedForCode){document.getElementById("code").value=codeMatch[1].trim(); messages.innerHTML += "<div><b>AI:</b> ✅ Code updated in Coding screen.</div>";}else{messages.innerHTML += "<div><b>AI:</b> "+answer.replace(/</g,"&lt;").replace(/\n/g,"<br>")+"</div>";} 
+   }else{
+      messages.innerHTML += "<div><b>AI:</b> ❌ "+(data.message || "AI error")+"</div>";
+    }
   }catch(error){
-    lastError=error.message;
-    output.textContent="❌ Python Error:\\n"+error.message;
+    document.getElementById("aiTyping")?.remove();
+    messages.innerHTML += "<div><b>AI:</b> ❌ "+error.message+"</div>";
   }
+
+  messages.scrollTop=messages.scrollHeight;
+}
+function toggleTheme(){document.body.classList.toggle("lightTheme");localStorage.setItem("theme",document.body.classList.contains("lightTheme")?"light":"dark");} if(localStorage.getItem("theme")==="light"){document.body.classList.add("lightTheme");}
+function loadFiles(event){
+  const files=event.target.files;
+  const list=document.getElementById("fileList");
+  list.style.display="block";
+  list.innerHTML="";
+  window.uploadedFiles=Array.from(files);
+  window.uploadedFiles.forEach((file,i)=>{
+    const btn=document.createElement("button");
+    btn.textContent="📄 "+file.name;
+    btn.style.display="block";
+    btn.style.width="100%";
+    btn.style.marginBottom="5px";
+    btn.onclick=()=>openFile(i);
+    list.appendChild(btn);
+  });
+}
+
+
+function getSelectedLanguage(){const code=document.getElementById("code").value; if(/console\.log|let |const |var |=>/.test(code)) return "javascript"; if(/print\(|def |import /.test(code)) return "python"; return "javascript";}
+async function fixCode(){
+  const code = document.getElementById("code").value;
+  const output = document.getElementById("output");
+
+  const error = output.textContent;
+
+  if(!error || error === "Ready..." || error === "Running..."){
+    output.textContent = "❌ First run the code and get an error.";
+    return;
+  }
+
+  output.textContent = "🤖 AI fixing code...";
+
+  try{
+    const response = await fetch("/api/ai-chat",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        message:"Fix this coding error using the code below. Return ONLY the COMPLETE corrected code inside <CODE>...</CODE>. Do not explain.\n\nCURRENT CODE:\n"+code+"\n\nERROR:\n"+error,
+        code:code,
+        provider:localStorage.getItem("selectedProvider") || "openrouter",
+        history:[]
+      })
+    });
+
+    const data = await response.json();
+    const answer = data.answer || "";
+    const codeTag = answer.match(/<CODE>([\s\S]*?)<\/CODE>/i);
+    const codeBlock = answer.match(/```(?:python|javascript|js|java|c|cpp|go|rust|php|ruby|kotlin|typescript|csharp|cs)?\s*([\s\S]*?)```/i);
+    const match = codeTag || codeBlock;
+
+    if(match){
+      document.getElementById("code").value = match[1].trim();
+      output.textContent = "✅ AI fixed the code. Running..."; setTimeout(()=>runCode(),100);
+    }else{
+      output.textContent = "❌ AI response:\n" + answer;
+    }
+  }catch(e){
+    output.textContent = "❌ AI error: " + e.message;
+  }
+}
+async function runCode(){
+  const code = document.getElementById("code").value;
+  const language = getSelectedLanguage();
+  const output = document.getElementById("output");
+
+  output.textContent = "Running...";
+
+  try {
+    if(language === "javascript"){
+      let logs=[];
+      const originalLog=console.log;
+      console.log=(...args)=>logs.push(args.join(" "));
+      try{ eval(code); output.textContent=logs.join("\n") || "JavaScript executed successfully."; }
+      catch(e){ output.textContent="❌ "+e.message; setTimeout(()=>fixCode(),100); }
+      finally{ console.log=originalLog; }
+      return;
+    }
+
+    if(language === "python"){
+      const pyodide = await window.pyodideReady;
+      try{
+        const result = await pyodide.runPythonAsync(code);
+        output.textContent = result === undefined ? "Python executed successfully." : String(result);
+      }catch(e){
+        output.textContent = "❌ " + e.message;
+        setTimeout(()=>fixCode(),100);
+      }
+      return;
+    }
+
+    if(language === "java"){
+      const response = await fetch("/api/run-java", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({code})
+      });
+
+      const data = await response.json();
+      output.textContent = data.success ? data.output : "❌ " + (data.error || "Java error");
+      return;
+    }
+
+    if(language === "c"){
+      const response = await fetch("/api/run-c", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({code})
+      });
+
+      const data = await response.json();
+      output.textContent = data.success ? data.output : "❌ " + (data.error || "C error");
+      return;
+    }
+
+if(language === "csharp"){
+  const response = await fetch("/api/run-csharp", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({code})
+  });
+
+  const data = await response.json();
+
+  output.textContent = data.success
+    ? data.output
+    : "❌ " + (data.error || "C# error");
+
   return;
 }
 
-const logs=[];
-const fakeConsole={
-  log:function(...args){logs.push(args.join(" "));}
-};
+if(language === "typescript"){
+  const response = await fetch("/api/run-typescript", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({code})
+  });
 
-try{
-  new Function("console",code)(fakeConsole);
-  output.textContent=logs.join("\\n") || "✅ Code executed successfully";
-}catch(error){
-  lastError=error.message;
-  output.textContent="❌ Error:\\n"+error.message;
+  const data = await response.json();
+
+  output.textContent = data.success
+    ? data.output
+    : "❌ " + (data.error || "TypeScript error");
+
+  return;
 }
+    if(language === "kotlin"){
+      const response = await fetch("/api/run-kotlin", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({code})
+      });
+
+      const data = await response.json();
+      output.textContent = data.success ? data.output : "❌ " + (data.error || "Kotlin error");
+      return;
+    }
+
+    if(language === "ruby"){
+      const response = await fetch("/api/run-ruby", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({code})
+      });
+
+      const data = await response.json();
+      output.textContent = data.success ? data.output : "❌ " + (data.error || "Ruby error");
+      return;
+    }
+
+    if(language === "php"){
+      const response = await fetch("/api/run-php", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({code})
+      });
+
+      const data = await response.json();
+      output.textContent = data.success ? data.output : "❌ " + (data.error || "PHP error");
+      return;
+    }
+
+    if(language === "php"){
+      const response = await fetch("/api/run-php", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({code})
+      });
+
+      const data = await response.json();
+      output.textContent = data.success ? data.output : "❌ " + (data.error || "PHP error");
+      return;
+    }
+
+    if(language === "rust"){
+      const response = await fetch("/api/run-rust", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({code})
+      });
+
+      const data = await response.json();
+      output.textContent = data.success ? data.output : "❌ " + (data.error || "Rust error");
+      return;
+    }
+
+    if(language === "go"){
+      const response = await fetch("/api/run-go", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({code})
+      });
+
+      const data = await response.json();
+      output.textContent = data.success ? data.output : "❌ " + (data.error || "Go error");
+      return;
+    }
+
+    if(language === "bash"){
+      const response = await fetch("/api/run-bash", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({code})
+      });
+
+      const data = await response.json();
+
+      output.textContent = data.success
+        ? data.output
+        : "❌ " + (data.error || "Bash error");
+
+      return;
+    }
+
+    if(language === "sql"){
+      const response = await fetch("/api/run-sql", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({code})
+      });
+
+      const data = await response.json();
+
+      output.textContent = data.success
+        ? data.output
+        : "❌ " + (data.error || "SQL error");
+
+      return;
+    }
+
+    if(language === "cpp"){
+      const response = await fetch("/api/run-cpp", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({code})
+      });
+
+      const data = await response.json();
+      output.textContent = data.success ? data.output : "❌ " + (data.error || "C++ error");
+      return;
+    }
+
+    output.textContent = language + " Run support coming soon.";
+  } catch(error) {
+    output.textContent = "❌ " + error.message;
+  }
 }
-
-async function askAI(){
-const code=document.getElementById("code").value;
-const provider=document.getElementById("provider").value;
-const aiResponse=document.getElementById("aiResponse");
-
-aiResponse.textContent="🤖 AI is thinking...";
-
-try{
-const response=await fetch("/api/ask-ai",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({
-code:code,
-error:lastError,
-provider:provider
-})
-});
-
-const data=await response.json();
-
-if(data.success){
-aiResponse.textContent=data.answer;
-}else{
-aiResponse.textContent="❌ "+data.message;
-}
-}catch(error){
-aiResponse.textContent="❌ Connection error: "+error.message;
-}
-}
-async function fixCode(){
-const code=document.getElementById("code").value;
-const language=document.getElementById("language").value;
-const provider=document.getElementById("provider").value;
-const aiResponse=document.getElementById("aiResponse");
-
-aiResponse.textContent="🔧 Fixing code...";
-
-try{                                                        const response=await fetch("/api/ask-ai",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({                                       code:code,
-error:lastError || "Find and fix any errors in this code.",
-provider:provider                                           })
-});
-
-const data=await response.json();
-
-if(data.success){
-let answer=data.answer || "";
-let match=answer.match(/```(?:javascript|js|python|py)?\s*([\s\S]*?)```/i);
-let fixedCode=match ? match[1].trim() : "";
-if(!fixedCode){
-const lines=answer.split("\n");
-const codeLines=lines.filter(line =>
-line.trim().startsWith("console.") || line.trim().startsWith("print(") ||
-line.trim().startsWith("const ") ||
-line.trim().startsWith("let ") ||
-line.trim().startsWith("var ") ||
-line.trim().startsWith("function ") ||
-line.trim().startsWith("if ") ||
-line.trim().startsWith("for ") ||
-line.trim().startsWith("while ")
-);
-fixedCode=codeLines.join("\n").trim();
-}
-
-if(fixedCode){
-document.getElementById("code").value=fixedCode;
-aiResponse.textContent="✅ Code fixed and placed in the editor.";
-runCode();
-}else{
-aiResponse.textContent="⚠️ Could not extract corrected code.\n\n"+answer;
-}
-}else{
-aiResponse.textContent="❌ "+data.message;
-}
-}catch(error){
-aiResponse.textContent="❌ Connection error: "+error.message;
-}
-}
-
 </script>
 
+<script>
+function showCodingScreen(){
+  document.getElementById("codingScreen").style.display="block";
+  document.getElementById("aiScreen").style.display="none";
+}
+
+function showAIScreen(){
+  document.getElementById("codingScreen").style.display="none";
+  document.getElementById("aiScreen").style.display="block";
+}
+</script>
 </body>
 </html>
