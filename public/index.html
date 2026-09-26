@@ -108,7 +108,7 @@ input{background:#161b22;color:#ffffff;border:1px solid #444;}
 <option value="typescript">TypeScript</option>
 <option value="sql">SQL</option>
 <option value="bash">Bash</option>
-</select><label>AI Provider</label><br><select id="settingsProvider" style="width:100%;margin:8px 0 15px;"><option value="openai">OpenAI</option><option value="deepseek">DeepSeek</option><option value="local">Local Qwen</option><option value="openrouter">OpenRouter Free</option><option value="groq">Groq</option></select><label>Theme</label><br><select id="settingsTheme" style="width:100%;margin:8px 0 15px;"><option value="dark">Dark</option><option value="light">Light</option></select><button onclick="applySettings()" style="width:100%;">Apply</button></div>
+</select><label>AI Provider</label><br><select id="settingsProvider" style="width:100%;margin:8px 0 15px;"><option value="openai">OpenAI</option><option value="deepseek">DeepSeek</option><option value="local">Local Qwen</option><option value="openrouter">OpenRouter Free</option><option value="groq">Groq</option><option value="gemini">Gemini</option></select><label>Theme</label><br><select id="settingsTheme" style="width:100%;margin:8px 0 15px;"><option value="dark">Dark</option><option value="light">Light</option></select><button onclick="applySettings()" style="width:100%;">Apply</button></div>
 <div id="menuBox" style="display:none;position:absolute;right:10px;top:60px;background:#161b22;border:1px solid #30363d;border-radius:8px;padding:10px;z-index:1000;">
   <button onclick="openSettings()" style="display:block;width:100%;margin-bottom:6px;">⚙ Settings</button>
   <button onclick="document.getElementById('fileInput').click()" style="display:block;width:100%;margin-bottom:6px;">📁 Files</button>
@@ -284,6 +284,7 @@ function openFile(index){
   overflow:hidden;
   box-shadow:0 8px 30px rgba(0,0,0,.25);
 }
+.ai-provider-icon{width:18px;height:18px;vertical-align:middle;margin-right:6px;}
 #aiChatMessages{
       color:#111;
   height:320px;
@@ -319,6 +320,16 @@ let aiChatHistory=[];
 localStorage.removeItem("aiChatHistory");
 
 async function sendAIChat(){
+function getAIIcon(provider){
+  const p=String(provider || "").toLowerCase();
+  if(p.includes("gemini")) return "/icons/gemini.svg";
+  if(p.includes("local qwen")) return "/icons/local-ai.jpg";
+  if(p.includes("openai")) return "/icons/openai.svg";
+  if(p.includes("deepseek")) return "/icons/deepseek.svg";
+  if(p.includes("groq")) return "/icons/groq.svg";
+  if(p.includes("openrouter")) return "/icons/openrouter.svg";
+  return "/icons/local-ai.jpg";
+}
   const input=document.getElementById("aiChatInput");
   const messages=document.getElementById("aiChatMessages");
   const text=input.value.trim();
@@ -349,7 +360,7 @@ async function sendAIChat(){
     if(data.success){
       aiChatHistory.push({role:"user",content:text});
       aiChatHistory.push({role:"assistant",content:data.answer || ""}); localStorage.setItem("aiChatHistory",JSON.stringify(aiChatHistory));
-      const answer=data.answer || ""; const codeMatch=answer.match(/<CODE>([\s\S]*?)<\/CODE>/i); const userAskedForCode=/\b(fix|change|add|remove|modify|edit|update|rewrite|correct|debug|replace|delete|generate|create|write)\b.*\b(code|coding|program|programming|function|class|script|html|css|javascript|python|java|c\+\+)\b|\b(code|coding|program|programming|function|class|script|html|css|javascript|python|java|c\+\+)\b.*\b(fix|change|add|remove|modify|edit|update|rewrite|correct|debug|replace|delete|generate|create|write)\b/i.test(text); if(codeMatch && userAskedForCode){document.getElementById("code").value=codeMatch[1].trim(); messages.innerHTML += "<div><b>AI:</b> ✅ Code updated in Coding screen.</div>";}else{messages.innerHTML += "<div><b>AI:</b> "+answer.replace(/</g,"&lt;").replace(/\n/g,"<br>")+"</div>";} 
+      const answer=data.answer || ""; const codeMatch=answer.match(/<CODE>([\s\S]*?)<\/CODE>/i); const userAskedForCode=/\b(fix|change|add|remove|modify|edit|update|rewrite|correct|debug|replace|delete|generate|create|write)\b.*\b(code|coding|program|programming|function|class|script|html|css|javascript|python|java|c\+\+)\b|\b(code|coding|program|programming|function|class|script|html|css|javascript|python|java|c\+\+)\b.*\b(fix|change|add|remove|modify|edit|update|rewrite|correct|debug|replace|delete|generate|create|write)\b/i.test(text); if(codeMatch && userAskedForCode){document.getElementById("code").value=codeMatch[1].trim(); messages.innerHTML += "<div><b>AI:</b> ✅ Code updated in Coding screen.</div>";}else{messages.innerHTML += "<div><img class=\"ai-provider-icon\" src=\""+getAIIcon(data.provider)+"\"> <b>"+(data.provider || "AI")+":</b> "+answer.replace(/</g,"&lt;").replace(/\n/g,"<br>")+"</div>";} 
    }else{
       messages.innerHTML += "<div><b>AI:</b> ❌ "+(data.message || "AI error")+"</div>";
     }

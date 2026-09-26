@@ -2,15 +2,15 @@ const express = require("express");
 const { execFile, spawn } = require("child_process");
 const cors = require("cors");
 require("dotenv").config();
-
 const OpenAI = require("openai");
+const gemini = process.env.GEMINI_API_KEY ? new OpenAI({ apiKey: process.env.GEMINI_API_KEY, baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/" }) : null;
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static("public"));
+app.use(express.static("public", { maxAge: "1d" }));
 
 const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
@@ -85,6 +85,11 @@ const AI_PROVIDERS = {
     name: "OpenAI",
     type: "openai-compatible",
     model: "gpt-5.6"
+  },
+  gemini: {
+    name: "Gemini",
+    type: "openai-compatible",
+    model: "gemini-3.8-flash"
   }
 };
 
@@ -132,7 +137,8 @@ async function callAIProvider(provider, messages, options = {}) {
     openai,
     deepseek,
     groq,
-    openrouter
+    openrouter,
+    gemini
   };
 
   const client = clients[provider];
@@ -141,12 +147,36 @@ async function callAIProvider(provider, messages, options = {}) {
     throw new Error(`AI provider "${provider}" is not configured.`);
   }
 
-  const response = await client.chat.completions.create({
-    model: config.model,
-    messages,
-    temperature,
-    max_tokens
-  });
+  console.log("AI DEBUG:", provider, config.model);
+
+  let response;
+  let lastError;
+
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      response = await client.chat.completions.create({
+        model: config.model,
+        messages,
+        temperature,
+        max_tokens
+      });
+      break;
+    } catch (error) {
+      lastError = error;
+      const status = error?.status || error?.response?.status;
+
+      if (provider !== "gemini" || status !== 503 || attempt === 3) {
+        throw error;
+      }
+
+      console.log(`Gemini 503 - retrying (${attempt}/2)...`);
+      await new Promise(resolve => setTimeout(resolve, attempt * 2000));
+    }
+  }
+
+  if (!response) {
+    throw lastError || new Error("AI request failed");
+  }
 
   return {
     provider: config.name,
@@ -213,10 +243,34 @@ app.post("/api/ai-chat", async (req, res) => {
       }
     ];
 
-    const result = await callAIProvider(provider || "local", messages, {
-      temperature: 0.7,
-      max_tokens: 1024
-    });
+    let selectedProvider = provider || "local";
+    let result;
+
+    try {
+      result = await callAIProvider(selectedProvider, messages, {
+        temperature: 0.7,
+        max_tokens: 512
+      });
+    } catch (error) {
+      const status = error?.status || error?.response?.status;
+      console.log("GEMINI ERROR DEBUG:", status, error.message);
+      const isGeminiQuotaError =
+        selectedProvider === "gemini" &&
+        (status === 429 || error.message?.includes("RESOURCE_EXHAUSTED"));
+
+      if (!isGeminiQuotaError) {
+        throw error;
+      }
+
+      console.log("Gemini quota exceeded. Falling back to Local Qwen...");
+
+      result = await callAIProvider("local", messages, {
+        temperature: 0.7,
+        max_tokens: 512
+      });
+
+      result.provider = "Local Qwen (Gemini fallback)";
+    }
 
     return res.json({
       success: true,
@@ -227,9 +281,15 @@ app.post("/api/ai-chat", async (req, res) => {
   } catch (error) {
     console.error("AI CHAT ERROR:", error);
 
+    let friendlyMessage = error.message || "AI chat failed";
+
+    if (friendlyMessage.includes("503") || friendlyMessage.includes("high demand")) {
+      friendlyMessage = "Gemini is temporarily busy. Please try again in a moment.";
+    }
+
     return res.status(500).json({
       success: false,
-      message: error.message || "AI chat failed"
+      message: friendlyMessage
     });
   }
 });
@@ -263,7 +323,7 @@ ${error || "No error provided"}
       }
     ], {
       temperature: 0.2,
-      max_tokens: 1024
+      max_tokens: 512
     });
 
     return res.json({
